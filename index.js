@@ -24,6 +24,37 @@ async function run() {
 	try {
 		// Connect the client to the server	(optional starting in v4.7)
 		await client.connect();
+
+     // database collection
+	 const userCollection = client.db("percelManagement").collection("users");
+
+
+	 // users api
+
+	 app.get("/users", verifyToken, async (req, res) => {
+		console.log(req.headers);
+		const result = await userCollection.find().toArray();
+		res.send(result);
+	});
+
+
+	app.post("/users", async (req, res) => {
+		const user = req.body;
+		// to check existing email
+		const query = { email: user.email };
+		const existingUser = await userCollection.findOne(query);
+		if (existingUser) {
+			return res.send({
+				message: "User already exists",
+				insertedId: null,
+			});
+		}
+		const result = await userCollection.insertOne(user);
+		res.send(result);
+	});
+
+
+
 		// Send a ping to confirm a successful connection
 		await client.db("admin").command({ ping: 1 });
 		console.log(

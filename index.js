@@ -29,9 +29,19 @@ async function run() {
 	 const userCollection = client.db("percelManagement").collection("users");
 
 
+	 //jwt api
+	 app.post("/jwt", async (req, res) => {
+		const user = req.body;
+		const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+			expiresIn: "1h",
+		});
+		res.send({ token });
+	});
+
+
 	 // users api
 
-	 app.get("/users", verifyToken, async (req, res) => {
+	 app.get("/users", async (req, res) => {
 		console.log(req.headers);
 		const result = await userCollection.find().toArray();
 		res.send(result);

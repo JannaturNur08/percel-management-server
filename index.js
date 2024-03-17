@@ -28,6 +28,7 @@ async function run() {
 
      // database collection
 	 const userCollection = client.db("percelManagement").collection("users");
+	 const parcelCollection = client.db("percelManagement").collection("parcels");
 
 
 	 //jwt api
@@ -123,6 +124,12 @@ async function run() {
 	});
 
 
+		//add percels
+		app.post("/parcels", async (req, res) => {
+			const parcel = req.body;
+			const result = await parcelCollection.insertOne(parcel);
+			res.send(result);
+		});
 
 		// Send a ping to confirm a successful connection
 		await client.db("admin").command({ ping: 1 });

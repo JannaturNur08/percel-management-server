@@ -64,7 +64,7 @@ async function run() {
 		};
 
 
-	 // users api
+	 // all users api
 
 	 app.get("/users",verifyToken, async (req, res) => {
 		console.log(req.headers);
@@ -72,7 +72,41 @@ async function run() {
 		res.send(result);
 	});
 
+	//find admin email
+	app.get("/users/admin/:email", verifyToken, async (req, res) => {
+		const email = req.params.email;
 
+		if (email !== req.decoded.email) {
+			return res.status(403).send({ message: "forbidden access" });
+		}
+
+		const query = { email: email };
+		const user = await userCollection.findOne(query);
+		let admin = false;
+		if (user) {
+			admin = user?.role === "Admin";
+		}
+		res.send({ admin });
+	});
+
+	//find DeliveryMen email
+	app.get("/users/deliveryMen/:email", verifyToken, async (req, res) => {
+		const email = req.params.email;
+
+		if (email !== req.decoded.email) {
+			return res.status(403).send({ message: "forbidden access" });
+		}
+
+		const query = { email: email };
+		const user = await userCollection.findOne(query);
+		let deliveryMen = false;
+		if (user) {
+			deliveryMen = user?.role === "DeliveryMen";
+		}
+		res.send({ deliveryMen });
+	});
+
+	// new user 
 	app.post("/users", async (req, res) => {
 		const user = req.body;
 		// to check existing email

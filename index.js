@@ -3,7 +3,7 @@ const app = express();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -26,20 +26,22 @@ async function run() {
 		// Connect the client to the server	(optional starting in v4.7)
 		await client.connect();
 
-     // database collection
-	 const userCollection = client.db("percelManagement").collection("users");
-	 const parcelCollection = client.db("percelManagement").collection("parcels");
+		// database collection
+		const userCollection = client
+			.db("percelManagement")
+			.collection("users");
+		const parcelCollection = client
+			.db("percelManagement")
+			.collection("parcels");
 
-
-	 //jwt api
-	 app.post("/jwt", async (req, res) => {
-		const user = req.body;
-		const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-			expiresIn: "1h",
+		//jwt api
+		app.post("/jwt", async (req, res) => {
+			const user = req.body;
+			const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+				expiresIn: "1h",
+			});
+			res.send({ token });
 		});
-		res.send({ token });
-	});
-
 
 		//middlewares
 		const verifyToken = (req, res, next) => {
@@ -64,70 +66,125 @@ async function run() {
 			);
 		};
 
+		// all users api
 
-	 // all users api
+		app.get("/users", verifyToken, async (req, res) => {
+			console.log(req.headers);
+			const result = await userCollection.find().toArray();
+			res.send(result);
+		});
 
-	 app.get("/users",verifyToken, async (req, res) => {
-		console.log(req.headers);
-		const result = await userCollection.find().toArray();
-		res.send(result);
-	});
+		//find admin email
+		app.get("/users/admin/:email", verifyToken, async (req, res) => {
+			const email = req.params.email;
 
-	//find admin email
-	app.get("/users/admin/:email", verifyToken, async (req, res) => {
-		const email = req.params.email;
+			if (email !== req.decoded.email) {
+				return res.status(403).send({ message: "forbidden access" });
+			}
 
-		if (email !== req.decoded.email) {
-			return res.status(403).send({ message: "forbidden access" });
-		}
+			const query = { email: email };
+			const user = await userCollection.findOne(query);
+			let admin = false;
+			if (user) {
+				admin = user?.role === "Admin";
+			}
+			res.send({ admin });
+		});
 
-		const query = { email: email };
-		const user = await userCollection.findOne(query);
-		let admin = false;
-		if (user) {
-			admin = user?.role === "Admin";
-		}
-		res.send({ admin });
-	});
+		//find DeliveryMen email
+		app.get("/users/deliveryMen/:email", verifyToken, async (req, res) => {
+			const email = req.params.email;
 
-	//find DeliveryMen email
-	app.get("/users/deliveryMen/:email", verifyToken, async (req, res) => {
-		const email = req.params.email;
+			if (email !== req.decoded.email) {
+				return res.status(403).send({ message: "forbidden access" });
+			}
 
-		if (email !== req.decoded.email) {
-			return res.status(403).send({ message: "forbidden access" });
-		}
+			const query = { email: email };
+			const user = await userCollection.findOne(query);
+			let deliveryMen = false;
+			if (user) {
+				deliveryMen = user?.role === "DeliveryMen";
+			}
+			res.send({ deliveryMen });
+		});
 
-		const query = { email: email };
-		const user = await userCollection.findOne(query);
-		let deliveryMen = false;
-		if (user) {
-			deliveryMen = user?.role === "DeliveryMen";
-		}
-		res.send({ deliveryMen });
-	});
-
-	// new user 
-	app.post("/users", async (req, res) => {
-		const user = req.body;
-		// to check existing email
-		const query = { email: user.email };
-		const existingUser = await userCollection.findOne(query);
-		if (existingUser) {
-			return res.send({
-				message: "User already exists",
-				insertedId: null,
-			});
-		}
-		const result = await userCollection.insertOne(user);
-		res.send(result);
-	});
-
+		// new user
+		app.post("/users", async (req, res) => {
+			const user = req.body;
+			// to check existing email
+			const query = { email: user.email };
+			const existingUser = await userCollection.findOne(query);
+			if (existingUser) {
+				return res.send({
+					message: "User already exists",
+					insertedId: null,
+				});
+			}
+			const result = await userCollection.insertOne(user);
+			res.send(result);
+		});
 
 		//add percels
 		app.post("/parcels", async (req, res) => {
 			const parcel = req.body;
 			const result = await parcelCollection.insertOne(parcel);
+			res.send(result);
+		});
+
+		// percel get
+		app.get("/parcels", async (req, res) => {
+			const parcels = await parcelCollection.find().toArray();
+			res.send(parcels);
+		});
+
+		// my parcels
+		app.get("/myParcels", async (req, res) => {
+			const email = req.query.email;
+			const query = { email: email };
+			const result = await parcelCollection.find(query).toArray();
+			res.send(result);
+		});
+
+		//get parcels by id
+		app.get("/parcels/:id", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const result = await parcelCollection.findOne(query);
+			res.send(result);
+		});
+
+		//update parcel
+		app.patch("/parcels/:id", async (req, res) => {
+			const parcel = req.body;
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const updatedDoc = {
+				$set: {
+					name: parcel.name,
+					email: parcel.email,
+					phoneNumber: parcel.phoneNumber,
+					parcelType: parcel.parcelType,
+					parcelWeight: parcel.parcelWeight,
+					receiverName: parcel.receiverName,
+					receiverPhoneNumber: parcel.receiverPhoneNumber,
+					deliveryAddress:parcel.deliveryAddress,
+					requestedDeliveryDate: parcel.requestedDeliveryDate,
+					deliveryAddressLatitude: parcel.deliveryAddressLatitude,
+					deliveryAddressLongitude: parcel.deliveryAddressLongitude,
+					bookingDate: parcel.bookingDate,
+					price: parcel.price,
+					status: "pending",
+				},
+			};
+			const result = await parcelCollection.updateOne(query, updatedDoc);
+			res.send(result);
+		});
+
+		//delete parcel
+		app.delete("/parcels/:id", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const result = await parcelCollection.deleteOne(query);
 			res.send(result);
 		});
 

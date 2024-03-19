@@ -24,7 +24,7 @@ const client = new MongoClient(uri, {
 async function run() {
 	try {
 		// Connect the client to the server	(optional starting in v4.7)
-		await client.connect();
+		//	await client.connect();
 
 		// database collection
 		const userCollection = client
@@ -124,6 +124,31 @@ async function run() {
 			res.send(result);
 		});
 
+		//make deliveryman
+		app.patch("/users/deliveryman/:id", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const updatedDoc = {
+				$set: {
+					role: "DeliveryMen",
+				},
+			};
+			const result = await userCollection.updateOne(query, updatedDoc);
+			res.send(result);
+		});
+		//make admin
+		app.patch("/users/admin/:id", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const updatedDoc = {
+				$set: {
+					role: "Admin",
+				},
+			};
+			const result = await userCollection.updateOne(query, updatedDoc);
+			res.send(result);
+		});
+
 		//add percels
 		app.post("/parcels", async (req, res) => {
 			const parcel = req.body;
@@ -167,7 +192,7 @@ async function run() {
 					parcelWeight: parcel.parcelWeight,
 					receiverName: parcel.receiverName,
 					receiverPhoneNumber: parcel.receiverPhoneNumber,
-					deliveryAddress:parcel.deliveryAddress,
+					deliveryAddress: parcel.deliveryAddress,
 					requestedDeliveryDate: parcel.requestedDeliveryDate,
 					deliveryAddressLatitude: parcel.deliveryAddressLatitude,
 					deliveryAddressLongitude: parcel.deliveryAddressLongitude,
@@ -189,10 +214,10 @@ async function run() {
 		});
 
 		// Send a ping to confirm a successful connection
-		await client.db("admin").command({ ping: 1 });
-		console.log(
-			"Pinged your deployment. You successfully connected to MongoDB!"
-		);
+		// await client.db("admin").command({ ping: 1 });
+		// console.log(
+		// 	"Pinged your deployment. You successfully connected to MongoDB!"
+		// );
 	} finally {
 		// Ensures that the client will close when you finish/error
 		// await client.close();

@@ -33,6 +33,9 @@ async function run() {
 		const parcelCollection = client
 			.db("percelManagement")
 			.collection("parcels");
+		const deliveryAssignCollection = client
+			.db("percelManagement")
+			.collection("deliveryAssign");
 
 		//jwt api
 		app.post("/jwt", async (req, res) => {
@@ -210,6 +213,27 @@ async function run() {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 			const result = await parcelCollection.deleteOne(query);
+			res.send(result);
+		});
+
+		//assign deliveryman
+		app.post("/deliveryAssign", async (req, res) => {
+			const deliveryAssigned = req.body;
+			const result = await deliveryAssignCollection.insertOne(
+				deliveryAssigned
+			);
+			res.send(result);
+		});
+
+		app.patch("/parcels/:id", async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const updatedDoc = {
+				$set: {
+					status: "On the Way",
+				},
+			};
+			const result = await parcelCollection.updateOne(query, updatedDoc);
 			res.send(result);
 		});
 
